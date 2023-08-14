@@ -1,4 +1,4 @@
-# writing_type_classifierV3
+# Writing Type Training
 Writing type classifier made in plain pytorch instead of fastai
 
 ## Intro
