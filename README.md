@@ -1,75 +1,98 @@
 # Writing Type Training
-Writing type classifier made in plain pytorch instead of fastai
+
+Code for training a deep learning model to detect the writing type of document images. 
 
 ## Intro
 
-The component can be used for classifying input files to 'machinewritten' and 'handwritten' document and documents containing both.
+The component can be used for classifying input files to 'machinewritten' and 'handwritten' document and documents containing both writing types.
 
 The following input file formats are accepted: 
 
-- .pdf
 - .jpg
 - .png 
 - .tiff 
-
-If the input is a .pdf file, it is transformed into an image file before further processing.
-Each page of a multipage .pdf file is reported as a separate document in the output file.
-
-The results classified by the component is saved as a .csv file, where each row corresponds
-to a single input file (with the exception of multipage .pdf files). The columns of the output
-file contain the following data:
-
-- Filename of the input file ('filename')
-- Predicted class ('writing_type_class')
-- Confidence of prediction
 
 ## Setup
 
 ### Creating virtual environment using Anaconda
 
 The component can be safely installed and used in its own virtual environment. 
-For example an Anaconda environment 'empty_env' can be created with the command
+For example an Anaconda environment 'writing_type' can be created with the command
 
 ### Installing dependencies in LINUX (Tested with Ubuntu 20.04)
 
-`conda create -n writing_type python=3.7`
+```conda create -n writing_type python=3.7```
 
 Now the virtual environment can be activated by typing
 
-`conda activate writing_type`
+```conda activate writing_type```
 
 Install required dependencies/libraries by typing 
 
 ```
-conda install -c conda-forge poppler
 pip install -r requirements.txt
 ```
 
 The latter command must be executed in the folder where the requirements.txt file is located.
 
-## Running the component in LINUX
+NB! If you are having problems with the above command, installing this library can help. `conda install -c conda-forge poppler`
 
-The filepath of the input folder and the path for saving the output .csv file are given
-as arguments when running the component using command-line.
+## Training
 
-For example, if the 'test.py' code file is saved in folder
-`/home/<username>/writing_type_classifierV3/`, the input files are located in folder `/home/<username>/writing_type_classifierV3/input/` and model file is 
-located in folder `/home/<username>/writing_type_classifierV3/models/` as 'writing_type_v1.onnx'
-and the output file is saved in the file `/home/<username>/writing_type_classifierV3/results/results.csv`, the component can
-be run by executing the command
+Before training the data should be organized into a train folder, where there are two folders: an empty folder, containing empty images, and a ok folder for non-empty images. An example of the organization is depicted below.
 
-`python3 test.py --data_path /home/<username>/writing_type_classifierV3/input --model_file_name writing_type_v1.onnx --results_file_path /home/<username>/writing_type_classifierV3/results/results.csv`
+```
+├──writing_type_training
+      ├──models
+      ├──data
+      |   ├──train
+      |       ├──combination
+      |       ├──hand_written
+      |       └──type_written
+      ├──runs
+      ├──train.py
+      ├──utils.py
+      ├──dataset.py
+      ├──constants.py
+      └──requirements.txt
+```
 
-in the folder `/home/<username>/writing_type_classifierV3/`.
+An example of training command. More arguments can be found in the train.py file or by running `python train.py -h`. 
 
-If you don't want to specify the paths as arguments, please save your input data to the folder called 'input' and run the command
-python3 test.py
-By default, the empty_content_results.csv will be saved to the same path to the folder called 'results'.
+```python train.py --epochs 10 --run_name 'run1'```
 
-For example, if the 'test.py' code file is saved in folder
-`/home/<username>/writing_type_classifierV3/`, the input files have to be located in folder `/home/<username>/writing_type_classifierV3/input/`
-the component can be run by executing the command
+By default, the code uses a pretrained Imagenet model. If you want to train from scratch you can specify it in the training command as below. 
 
-`python3 empty_classifier.py`
+```python train.py --epochs 10 --run_name 'run1' --from_scratch True```
 
-and the output file will be saved to the path `/home/<username>/writing_type_classifierV3/results/writing_type_results.csv`.
+If you want to use data augmentations (i.e. rotate, colorjitter, sharpness, blur, affine and erasing), you can specify it in the training command as below.
+
+```python train.py --epochs 10 --run_name 'run1' --own_transform True```
+
+If you want to use different learning rates for base model and classification head, you can specify it in the training command as below.
+
+```python train.py --epochs 10 --run_name 'run1' --double_lr True```
+
+If you want to use freeze the base model during training, you can specify it in the training command as below.
+
+```python train.py --epochs 10 --run_name 'run1' --freeze True```
+
+If you want to change learning rate, number of workers or batch size, you can specify it in the training command as below.
+
+```python train.py --epochs 10 --run_name 'run1' --lr 0.01 --num_workers 4 --batch 8```
+
+All of the examples above can be used in one command.
+
+### Visualizing training metrics with Tensorboard
+
+You can visualize training metrics with Tensorboard by running a following command in the training folder.
+
+```tensorboard --logdir runs```
+
+After this you can in your preferred browser go to this link http://localhost:6006/. There you can see how your training is progressing. 
+
+### Information about the saved the models
+
+The models are saved into `./runs/models` folder.
+
+The code saves two models based on different metrics. The first model is saved based on a "fitness" score that is calculated `0.75 * balanced f1 score + 0.25 * balanced_accuracy`. The second model is saved based on validation loss.
