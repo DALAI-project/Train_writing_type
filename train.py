@@ -15,17 +15,17 @@ parser = argparse.ArgumentParser(description='Train function for binary classifi
 
 #
 parser.add_argument('--epochs', action='store', type=int, required=True, help='Number of epochs. REQUIRED')
+parser.add_argument('--run_name', action='store', type=str, required=True, help='Name for savefile/tensorboard. REQUIRED')
 parser.add_argument('--lr', action='store', type=float, required=False, default=0.001, help='Learning rate for optimizer')
-parser.add_argument('--train_data', action='store', type=str, required=False, default='/home/ubuntu/data/typehand/data/', help='Path to training data folder')
+parser.add_argument('--train_data', action='store', type=str, required=False, default='./data/train/', help='Path to training data folder')
 #parser.add_argument('--test_data', action='store', type=str, required=False, default='/home/ubuntu/data/empty-classifier/test_data/data/', help='Path to test data folder')
 parser.add_argument('--seed', action='store', type=int, required=False, default=42, help='Seed for splitting data')
-parser.add_argument('--batch', action='store', type=int, required=False, default=128, help='Batch size')
+parser.add_argument('--batch', action='store', type=int, required=False, default=16, help='Batch size')
 parser.add_argument('--num_workers', action='store', type=int, required=False, default=1, help='Number of workers for loading data')
 parser.add_argument('--weight_decay', action='store', type=float, required=False, default = 0.0001, help='weight decay for optimizer')
 parser.add_argument('--mean_std', action='store', type=str, required=False, default = 'own', help='Tells, which means and stds to use in normalization. Options: own, ImageNet')
 parser.add_argument('--label_smooth', action='store', type=float, required=False, default = 0.0, help='Use label smoothing loss')
-parser.add_argument('--save_model_path', action='store', type=str, required=False, default='/home/ubuntu/koodit/writing_type_plain/runs/models', help='empty_classifier')
-parser.add_argument('--run_name', action='store', type=str, required=True, help='Name for savefile/tensorboard. REQUIRED')
+parser.add_argument('--save_model_path', action='store', type=str, required=False, default='./runs/models', help='empty_classifier')
 parser.add_argument('--limit_val', action='store', type=float, required=False, default = 2.0, help='precentage of calculating validation iterations')
 parser.add_argument('--image_load_mode', action='store', type=str, required=False, default='shrink', help='Whether to use shrinking while loading images. Options: PIL, shrink')
 parser.add_argument('--patience', action='store', type=int, required=False, default = 100, help='Stop training if no improvement after patience epochs')
@@ -36,6 +36,7 @@ parser.add_argument('--freeze', action='store', type=bool, required=False, defau
 parser.add_argument('--model_path', action='store', type=str, required=False, default='', help='path to old model')
 parser.add_argument('--img_size', action='store', type=int, required=False, default = 224, help='Image size used in training')
 parser.add_argument('--bilinear', action='store', type=bool, required=False, default = False, help='Use bilinear resize. if false use bicubic')
+parser.add_argument('--from_scratch', action='store', type=bool, required=False, default = False, help='Train from scratch')
 
 args = parser.parse_args()
 
@@ -69,7 +70,8 @@ def train(args):
     validloader = DataLoader(valid_set, batch_size=args.batch, shuffle =True, num_workers=args.num_workers)
     
     # Create model etc.
-    model = initialize_model(3,model_path=args.model_path, freeze = args.freeze)
+    model = initialize_model(3,model_path=args.model_path, freeze = args.freeze, from_scratch=args.from_scratch)
+    model = model.to(device)
     if args.double_lr:
         optimizer = torch.optim.AdamW([{"params": model.features.parameters(), "lr": args.lr/10},
                         {"params": model.classifier.parameters(), "lr": args.lr}
@@ -152,8 +154,8 @@ def train(args):
                 loss = criterion(outputs.squeeze(1), labels)
                 #save all validation outputs and labels into an array for metrics calculations
                 _, outputs = torch.max(outputs, 1)
-                all_outs = np.append(all_outs, outputs.numpy())
-                all_labels = np.append(all_labels, labels.numpy())
+                all_outs = np.append(all_outs, outputs.cpu().numpy())
+                all_labels = np.append(all_labels, labels.cpu().numpy())
                     
             # statistics
             running_loss += loss.item() * inputs.size(0)
@@ -212,5 +214,5 @@ def train(args):
     print('Balanced Val Acc on best model(fitness): {:4f}'.format(best_acc_fit))
     
 
-
-train(args)
+if __name__ == '__main__':
+    train(args)

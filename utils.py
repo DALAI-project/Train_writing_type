@@ -15,10 +15,10 @@ def calc_metrics(targets,preds):
     # Calculate metrics.
     acc = accuracy_score(targets, preds)
     bal_acc = balanced_accuracy_score(targets, preds)
-    prec_kasi, rec_kasi, f_score_kasi, _ = precision_recall_fscore_support(targets, preds, labels=[0], average = 'macro')
-    prec_kone, rec_kone, f_score_kone, _ = precision_recall_fscore_support(targets, preds, labels=[1], average = 'macro')
-    prec_yhd, rec_yhd, f_score_yhd, _ = precision_recall_fscore_support(targets, preds, labels=[2], average = 'macro')
-    _,_,balanced_f_score,_ = precision_recall_fscore_support(targets, preds, average = 'weighted')
+    prec_kasi, rec_kasi, f_score_kasi, _ = precision_recall_fscore_support(targets, preds, labels=[0], average = 'macro', zero_division=0)
+    prec_kone, rec_kone, f_score_kone, _ = precision_recall_fscore_support(targets, preds, labels=[1], average = 'macro', zero_division=0)
+    prec_yhd, rec_yhd, f_score_yhd, _ = precision_recall_fscore_support(targets, preds, labels=[2], average = 'macro', zero_division=0)
+    _,_,balanced_f_score,_ = precision_recall_fscore_support(targets, preds, average = 'weighted', zero_division=0)
     
     results = {
         'acc': acc,
@@ -288,9 +288,9 @@ def build_fastai_model():
                                  )
                              )
 
-def initialize_model(num_classes, model_path = None, freeze=False, use_pretrained=True,
+def initialize_model(num_classes, model_path = None, freeze=False, from_scratch=True,
                      use_fai_classifier = True):
-    if use_pretrained:
+    if not from_scratch:
         model_ft = models.densenet121(weights='DenseNet121_Weights.IMAGENET1K_V1')
         if freeze:
             for param in model_ft.parameters():
